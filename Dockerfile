@@ -10,4 +10,4 @@ COPY bot/ .
 COPY .env .
 
 EXPOSE 8080
-CMD [ "node", "bot.js" ]
+CMD [ "forever", "start", "bot.js" ]
