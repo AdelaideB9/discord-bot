@@ -7,8 +7,8 @@ const fs = require('fs');
 const shell = require('shelljs'); // interact with the OS's shell
 
 // Loading data
-let data = JSON.parse(fs.readFileSync('data.json'));
-const { prefix, adminRole } = require('./config.json');
+let data = JSON.parse(fs.readFileSync('./data.json'));
+const { prefix, adminRole, botManagerRole } = require('./config.json');
 
 client.on('ready', () => {
 	console.log(`Logged in as ${client.user.tag}!`);
@@ -20,24 +20,35 @@ client.on('ready', () => {
 });
 
 client.on('message', message => {
-	if (message.content === 'ping') {
-		message.reply('pong');
+	switch (message.content) {
+		case 'ping':
+			message.reply('pong');
+			break;
+		case `${prefix}update`:
+			update(message);
+			break;
+		case `${prefix}restart`:
+			update(message);
+			break;
 	}
-	else if (message.content === `${prefix}update` || message.content === `${prefix}restart`) {
-		console.log(message.member.roles)
-		if (message.member.roles.cache.find(r => r.name === adminRole)) {
-			message.channel.send('Restarting and checking for updates...');
-			data.restartChannel = message.channel.id;
-			fs.writeFileSync('data.json', JSON.stringify(data, null, 4));
-			setTimeout(() => {
-				shell.exec('./update.sh');
-				message.channel.send('Failed to restart!');
-			}, 1000);
-		}
-		else {
-			message.reply("you need to be an admin for that...")
-		}
-	} 
 });
 
 client.login(process.env.TOKEN)
+
+
+function update(message) {
+	console.log(message.member.roles)
+	if (message.member.roles.cache.find(r => r.name === adminRole || r.name === botManagerRole)) {
+		message.channel.send('Restarting and checking for updates...');
+		data.restartChannel = message.channel.id;
+		fs.writeFileSync('data.json', JSON.stringify(data, null, 4));
+		setTimeout(() => {
+			shell.exec('./update.sh');
+			message.channel.send('Failed to restart!');
+		}, 1000);
+	}
+	else {
+		message.reply("you need to be an bot developer for that...")
+	}
+}
+

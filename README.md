@@ -21,4 +21,3 @@ TOKEN=XXXXXXXXXXX.XXXX.XXXXXXX
 
 ## Acknowledgements
 * [discord.js](https://github.com/discordjs/discord.js)
-* [SimpleMDE](https://github.com/sparksuite/simplemde-markdown-editor)

@@ -1,4 +1,5 @@
 {
     "prefix": "./",
-    "adminRole": "🔨"
+    "adminRole": "🔨",
+    "botManagerRole": "🐱"
 }
