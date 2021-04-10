@@ -36,7 +36,7 @@ const result = {
 const TOKEN_SECRET = crypto.randomBytes(20).toString('hex');
 console.log("TOKEN_SECRET: " + TOKEN_SECRET);
 
-const { prefix, adminRole, botManagerRole, emailRegex, defaultRole } = require('./config.json');
+const { prefix, adminRole, botManagerRole, emailRegex, defaultRole } = require('./bot/config.json');
 
 client.on('ready', () => {
 	console.log(`Logged in as ${client.user.tag}!`);
@@ -96,7 +96,7 @@ client.on('message', async (msg) => {
 				data.restartChannel = msg.channel.id;
 				saveData();
 				setTimeout(() => {
-					shell.exec('./update.sh');
+					shell.exec('./bot/update.sh');
 					msg.channel.send(message.restartFailed);
 				}, 1000);
 			} else {
@@ -246,6 +246,6 @@ async function sendWelcome(member) {
 }
 
 function saveData() {
-	fs.writeFileSync('data.json', JSON.stringify(data, null, 4));
+	fs.writeFileSync('./bot/data.json', JSON.stringify(data, null, 4));
 }
 
