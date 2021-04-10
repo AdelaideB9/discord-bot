@@ -45,6 +45,8 @@ client.on('ready', () => {
 		.then(console.log)
 		.catch(console.error);
 
+	client.channels.cache.get(data.restartChannel).send(message.restartComplete);
+
 	// Adding guilds to guilds array
 	client.guilds.cache.forEach(guild => {
 		guilds.push(guild)
@@ -189,7 +191,7 @@ function addRole(id, roleName) {
 		try {
 			// Finding the role that matches roleName and adding it to the msg author
 			role = guild.roles.cache.find(role => role.name === roleName);
-			
+
 			if (role) {
 				guild.members.cache.find(guildMember => guildMember.user.id == id).roles.add(role);
 				failed = false;

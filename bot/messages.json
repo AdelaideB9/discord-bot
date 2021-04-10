@@ -9,6 +9,7 @@
 	"authRequest": "Please authenticate yourself with ${prefix}auth [email]",
 	"restarting": "Restarting and checking for updates...",
 	"restartFailed": "Failed to restart!",
+	"restartComplete": "Hi again! I just restarted.",
 	"notAllowed": "You need to be a bot developer for that...",
 	"authHelp": "Authenticate using ${prefix}auth [email]",
 	"tokenHelp": "Enter a token using ${prefix}token [token]",
