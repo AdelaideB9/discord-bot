@@ -36,7 +36,7 @@ const result = {
 const TOKEN_SECRET = crypto.randomBytes(20).toString('hex');
 console.log("TOKEN_SECRET: " + TOKEN_SECRET);
 
-const { prefix, adminRole, botManagerRole, emailRegex, defaultRole } = require('./bot/config.json');
+const { prefix, adminRole, botManagerRole, emailRegex, defaultRole } = require('./config.json');
 
 client.on('ready', () => {
 	console.log(`Logged in as ${client.user.tag}!`);
