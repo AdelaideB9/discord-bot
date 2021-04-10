@@ -6,11 +6,12 @@ const fs = require('fs');
 const shell = require('shelljs'); // interact with the OS's shell
 const jwt = require('jsonwebtoken');
 const sgMail = require('@sendgrid/mail');
+const crypto = require('crypto')
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 // Loading data
-let data = JSON.parse(fs.readFileSync('./data.json'));
+let data = JSON.parse(fs.readFileSync('./bot/data.json'));
 let members;
 
 try {
@@ -31,6 +32,9 @@ const result = {
 	EMAIL_FAILED: "emailFailed",
 	ROLE_ADD_FAILED: "roleAddFailed"
 }
+
+const TOKEN_SECRET = crypto.randomBytes(20).toString('hex');
+console.log("TOKEN_SECRET: " + TOKEN_SECRET);
 
 const { prefix, adminRole, botManagerRole, emailRegex, defaultRole } = require('./config.json');
 
@@ -118,7 +122,7 @@ function genToken(id, email) {
 			id: id,
 			email: email
 		},
-		process.env.TOKEN_SECRET,
+		TOKEN_SECRET,
 		{ expiresIn: 600 }
 	);
 }
@@ -206,7 +210,7 @@ function receiveToken(id, token) {
 
 		try {
 			// Validating the token and getting the token data
-			valid = jwt.verify(token, process.env.TOKEN_SECRET);
+			valid = jwt.verify(token, TOKEN_SECRET);
 			tokenData = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
 
 			// Handling the case the user is already authenticated
