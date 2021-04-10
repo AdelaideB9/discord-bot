@@ -2,6 +2,6 @@
     "prefix": "./",
     "adminRole": "🔨",
     "botManagerRole": "🐱",
-	"emailRegex": "([a-z0-9]+)(@student.adelaide.edu.au)",
+	"emailRegex": "(a)(\\d{7})(@student.adelaide.edu.au)",
 	"defaultRole": "Member"
 }

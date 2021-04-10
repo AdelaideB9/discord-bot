@@ -1,4 +1,3 @@
-
 require('dotenv').config();
 
 const Discord = require('discord.js');
@@ -12,9 +11,26 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 // Loading data
 let data = JSON.parse(fs.readFileSync('./data.json'));
-let members = JSON.parse(fs.readFileSync('./bot/members.json'));
-let messages = JSON.parse(fs.readFileSync('./bot/messages.json'));
+let members;
+
+try {
+	members = JSON.parse(fs.readFileSync('./bot/members.json'));
+} catch(err) {
+	members = {}
+}
+
+let message = JSON.parse(fs.readFileSync('./bot/messages.json'));
 let guilds = [];
+
+const result = {
+	TOKEN_ACCEPTED: "tokenAccepted",
+	INVALID_TOKEN: "invalidToken",
+	ALREADY_AUTHENTICATED: "alreadyAuthenticated",
+	EMAIL_SENT: "emailSent",
+	INVALID_EMAIL: "invalidEmail",
+	EMAIL_FAILED: "emailFailed",
+	ROLE_ADD_FAILED: "roleAddFailed"
+}
 
 const { prefix, adminRole, botManagerRole, emailRegex, defaultRole } = require('./config.json');
 
@@ -24,7 +40,7 @@ client.on('ready', () => {
 	client.user.setPresence({ activity: { name: "I don't work pls help meowwwww", type: "COMPETING" } })
 		.then(console.log)
 		.catch(console.error);
-	
+
 	// Adding guilds to guilds array
 	client.guilds.cache.forEach(guild => {
 		guilds.push(guild)
@@ -36,45 +52,71 @@ client.on('guildCreate', guild => {
 	guilds.push(guild);
 });
 
-client.on('message', message => {
+client.on('message', async (msg) => {
+	if (msg.channel.type == 'dm') {
 
-	switch (message.content) {
-		case 'ping':
-			message.reply('pong');
-			break;
-		case `${prefix}update`:
-			update(message);
-			break;
-		case `${prefix}restart`:
-			update(message);
-			break;
-	}
+		// Messages within DMs
+		let args = msg.content.split(' ');
 
-	if (message.channel.type == 'dm') {
-		switch (message.content.split(' ')[0]) {
-			case `${prefix}auth`:
-				authenticate(message);
-				break;
-			case `${prefix}token`:
-				recToken(message);
-				break;
+		if (args[0] == `${prefix}auth`) {
+
+			if (args.length == 2) {
+				let result = await authenticate(msg.author.id, args[1]);
+				msg.reply(parse(message[result], { email: args[1], prefix: prefix }));
+			} else {
+				msg.reply(parse(message.authHelp, { prefix: prefix }));
+			}
+
+		} else if (args[0] == `${prefix}token`) {
+
+			if (args.length == 2) {
+				let result = receiveToken(msg.author.id, args[1]);
+				msg.reply(message[result]);
+			} else {
+				msg.reply(parse(message.tokenHelp, { prefix: prefix }));
+			}
+
 		}
+
+	} else {
+
+		// Messages within the server
+		if (msg.content == 'ping') {
+
+			msg.reply('pong');
+
+		} else if (msg.content == `${prefix}update` || msg.content == `${prefix}restart`) {
+
+			if (msg.member.roles.cache.find(r => r.name == adminRole || r.name == botManagerRole)) {
+				msg.channel.send(message.restarting);
+				data.restartChannel = msg.channel.id;
+				saveData();
+				setTimeout(() => {
+					shell.exec('./update.sh');
+					msg.channel.send(message.restartFailed);
+				}, 1000);
+			} else {
+				msg.reply(message.notAllowed)
+			}
+
+		}
+
 	}
 });
 
 client.on('guildMemberAdd', member => {
-	if (!member.roles.cache.some(role => role.name === "member")) {
+	if (!member.roles.cache.some(role => role.name == "member")) {
 		sendWelcome(member);
 	}
 });
 
 client.login(process.env.TOKEN)
 
-function genToken(tag, email) {
+function genToken(id, email) {
 	return jwt.sign(
 		{
-			tag: tag,
-		 	email: email
+			id: id,
+			email: email
 		},
 		process.env.TOKEN_SECRET,
 		{ expiresIn: 600 }
@@ -82,71 +124,83 @@ function genToken(tag, email) {
 }
 
 function parse(template, textMap) {
-  let output = template
+	let output = template
 
-  for (let [id, text] of Object.entries(textMap)) {
-    output = output.replace(new RegExp(`\\$\{${id}}`, 'mg'), text)
-  }
+	for (let [id, text] of Object.entries(textMap)) {
+		output = output.replace(new RegExp(`\\$\{${id}}`, 'mg'), text)
+	}
 
-  return output
+	return output
 }
 
-function sendEmail(token, email) {
+async function sendEmail(token, email) {
 	const msg = {
-	  	to: email,
-		from: 'hello@adelaideb9.com',
-	 	subject: 'Discord Authentication',
-  		text: parse(messages.authEmail, {token: token})
+		to: email,
+		from: 'noreply@adelaideb9.com',
+		subject: 'Discord Authentication',
+		text: parse(message.authEmail, { token: token })
 	};
 
-	(async () => {
-		try {
-		    await sgMail.send(msg);
-		} catch (error) {
-		    console.error(error);
-		    if (error.response) {
-				console.error(error.response.body)
-   			}
-		}
-	})();
-}
-
-function authenticate(message) {	
 	try {
-		// Getting email from input with regex
-		let re = new RegExp(emailRegex);
-		email = message.content.split(' ')[1].toLowerCase();
-		email = re.exec(email)[0];
-		
-		if (email) {
-			// Already authenticated
-			if (members.email) {
-				message.reply(messages.alreadyAuthenticated);
-				return;
-			}
-			
-			// Generate token and send email
-			token = Buffer.from(genToken(message.author.tag, email)).toString('base64');
-			sendEmail(token, email);
-			message.reply(parse(messages.emailSent, {email: email}));
-			return;
-		}
-	} catch(err) { console.log(err); }
-	message.reply(messages.invalidEmail);		
+		await sgMail.send(msg);
+		return result.EMAIL_SENT;
+
+	} catch (error) {
+		console.error(error);
+		return result.EMAIL_FAILED;
+	}
 }
 
-function addRole(member, roleName) {
+async function authenticate(id, email) {
+	if (email) {
+		try {
+			// Getting email from input with regex
+			let re = new RegExp(emailRegex);
+			email = email.toLowerCase();
+			email = re.exec(email)[0];
+
+			if (email) {
+				// Already authenticated
+				if (members[id]) {
+					return result.ALREADY_AUTHENTICATED;
+				}
+
+				// Generate token and send email
+				token = Buffer.from(genToken(id, email)).toString('base64');
+				return await sendEmail(token, email);
+			}
+
+		} catch (err) {
+			console.log(err);
+		}
+	}
+
+	return result.INVALID_EMAIL;
+}
+
+function addRole(id, roleName) {
+	failed = true;
 	// Going through each guild in guilds
 	guilds.forEach(guild => {
-		// Finding the role that matches roleName and adding it to the message author
-		role = guild.roles.cache.find(role => role.name === roleName);
-		guild.members.cache.find(guildMember => guildMember.user == member).roles.add(role);
+		try {
+			// Finding the role that matches roleName and adding it to the msg author
+			role = guild.roles.cache.find(role => role.name === roleName);
+			
+			if (role) {
+				guild.members.cache.find(guildMember => guildMember.user.id == id).roles.add(role);
+				failed = false;
+			}
+
+		} catch (err) {
+			failed = true;
+		}
 	});
+
+	if (failed)
+		return result.ROLE_ADD_FAILED;
 }
 
-function recToken(message) {
-	token = message.content.split(' ')[1];
-
+function receiveToken(id, token) {
 	if (token) {
 		token = Buffer.from(token, 'base64').toString();
 
@@ -156,49 +210,38 @@ function recToken(message) {
 			tokenData = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
 
 			// Handling the case the user is already authenticated
-			if (members[tokenData.email]) {
-				message.reply(messages.alreadyAuthenticated);
-				return;
+			if (members[id]) {
+				return result.ALREADY_AUTHENTICATED;
 			}
-			
+
 			// Adding the user to the db and adding the correct role
-			if (valid && tokenData.tag == message.author.tag) {
-				members[tokenData.email] = {tag: tokenData.tag, email: tokenData.email}; 
+			if (valid && tokenData.id == id) {
+				if (addRole(id, defaultRole) == result.ROLE_ADD_FAILED)
+					return result.ROLE_ADD_FAILED;
+
+				members[id] = tokenData.email;
 				fs.writeFileSync("./bot/members.json", JSON.stringify(members));
-				addRole(message.author, defaultRole); 
-				message.reply(messages.tokenAccepted);
-				return;
+
+				return result.TOKEN_ACCEPTED;
 			}
-		} catch(err) {
+		} catch (err) {
 			console.log(err)
 		}
-	} 
-	message.reply(messages.invalidToken);
+	}
+
+	return result.INVALID_TOKEN;
 }
 
-async function sendWelcome(member) {	
+async function sendWelcome(member) {
 	// Ensuring they aren't already a member
-	if (!member.roles.cache.some(role => role.name === defaultRole)) {
-		
-		// Creating DMChannel and sending welcome message
+	if (!member.roles.cache.some(role => role.name == defaultRole)) {
+		// Creating DMChannel and sending welcome msg
 		dm = await member.createDM();
-		dm.send(messages.authRequest);
+		dm.send(parse(message.authRequest, { prefix: prefix }));
 	}
 }
 
-function update(message) {
-	console.log(message.member.roles)
-	if (message.member.roles.cache.find(r => r.name === adminRole || r.name === botManagerRole)) {
-		message.channel.send(messages.restart);
-		data.restartChannel = message.channel.id;
-		fs.writeFileSync('data.json', JSON.stringify(data, null, 4));
-		setTimeout(() => {
-			shell.exec('./update.sh');
-			message.channel.send(messages.restartFailed);
-		}, 1000);
-	}
-	else {
-		message.reply(messages.notAllowed)
-	}
+function saveData() {
+	fs.writeFileSync('data.json', JSON.stringify(data, null, 4));
 }
 
