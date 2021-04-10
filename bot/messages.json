@@ -1,0 +1,12 @@
+{
+	"tokenAccepted": "Thank you for authenticating",
+	"invalidToken": "Incorrect token. Please try again or request another one",
+	"alreadyAuthenticated": "You're already authenticated",
+	"authEmail": "Thank you for authenticating yourself. Here is your token: ${token} If you feel that this is in error, please contact us at hello@adelaideb9.com.",
+	"emailSent": "Your authentication token has been sent to ${email}.",
+	"invalidEmail": "Please use a valid email",
+	"authRequest": "Please authenticate yourself with ./auth [email]",
+	"restart": "Restarting and checking for updates...",
+	"restartFailed": "Failed to restart!",
+	"notAllowed": "you need to be an bot developer for that..."
+}

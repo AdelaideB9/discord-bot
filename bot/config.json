@@ -1,5 +1,7 @@
 {
     "prefix": "./",
     "adminRole": "🔨",
-    "botManagerRole": "🐱"
+    "botManagerRole": "🐱",
+	"emailRegex": "([a-z0-9]+)(@student.adelaide.edu.au)",
+	"defaultRole": "Member"
 }
