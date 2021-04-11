@@ -51,6 +51,32 @@ client.on('ready', () => {
 	client.guilds.cache.forEach(guild => {
 		guilds.push(guild)
 	});
+
+
+	fs.readFile('./content/welcome.md', 'utf8', (err, message) => {
+		if (err) { console.log("Failed to read welcome.md"); }
+		else {
+			client.channels.cache.get(data.welcomeChannel).messages.fetch("830702450339479602")
+			.then(msg => {
+				msg.edit(message)
+					.then(msg => console.log("Welcome message updated!"))
+					.catch(console.error);
+			})
+			.catch(console.error);
+		}
+	});
+	fs.readFile('./content/resources.md', 'utf8', (err, message) => {
+		if (err) { console.log("Failed to read resources.md"); }
+		else {
+			client.channels.cache.get(data.resourcesChannel).messages.fetch("830708576284049409")
+			.then(msg => {
+				msg.edit(message)
+					.then(msg => console.log("Resources message updated!"))
+					.catch(console.error);
+			})
+			.catch(console.error);
+		}
+	});
 });
 
 // Adding guild to guilds whenever one joins

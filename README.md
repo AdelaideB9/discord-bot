@@ -10,13 +10,17 @@ TOKEN=XXXXXXXXXXX.XXXX.XXXXXXX
 ```
 
 ### Node.js
-`npm install`
-`npm start`
+```
+npm install
+npm start
+```
 
 
 ### Docker
-`docker build -t adelaideb9/discord-bot .`
-`docker run -p 1234:8080 -d adelaideb9/discord-bot`
+```
+docker build -t adelaideb9/discord-bot .
+docker run -p 1234:8080 -d adelaideb9/discord-bot
+```
 
 
 ## Acknowledgements
