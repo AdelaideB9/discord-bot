@@ -4,21 +4,10 @@ const Discord = require('discord.js');
 const client = new Discord.Client();
 const fs = require('fs');
 const shell = require('shelljs'); // interact with the OS's shell
-const jwt = require('jsonwebtoken');
-const sgMail = require('@sendgrid/mail');
-const crypto = require('crypto')
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const axios = require('axios')
 
 // Loading data
 let data = JSON.parse(fs.readFileSync('./bot/data.json'));
-let members;
-
-try {
-	members = JSON.parse(fs.readFileSync('./bot/members.json'));
-} catch(err) {
-	members = {}
-}
 
 let message = JSON.parse(fs.readFileSync('./bot/messages.json'));
 let guilds = [];
@@ -30,11 +19,8 @@ const result = {
 	EMAIL_SENT: "emailSent",
 	INVALID_EMAIL: "invalidEmail",
 	EMAIL_FAILED: "emailFailed",
-	ROLE_ADD_FAILED: "roleAddFailed"
+	ROLE_ADD_FAILED: "roleAddFailed",
 }
-
-const TOKEN_SECRET = crypto.randomBytes(20).toString('hex');
-console.log("TOKEN_SECRET: " + TOKEN_SECRET);
 
 const { prefix, adminRole, botManagerRole, emailRegex, defaultRole } = require('./config.json');
 
@@ -94,22 +80,11 @@ client.on('message', async (msg) => {
 
 			if (args.length == 2) {
 				let result = await authenticate(msg.author.id, args[1]);
-				msg.reply(parse(message[result], { email: args[1], prefix: prefix }));
+				msg.reply(parse(message[result], { prefix: prefix }));
 			} else {
 				msg.reply(parse(message.authHelp, { prefix: prefix }));
 			}
-
-		} else if (args[0] == `${prefix}token`) {
-
-			if (args.length == 2) {
-				let result = receiveToken(msg.author.id, args[1]);
-				msg.reply(message[result]);
-			} else {
-				msg.reply(parse(message.tokenHelp, { prefix: prefix }));
-			}
-
 		}
-
 	} else {
 
 		// Messages within the server
@@ -144,17 +119,6 @@ client.on('guildMemberAdd', member => {
 
 client.login(process.env.TOKEN)
 
-function genToken(id, email) {
-	return jwt.sign(
-		{
-			id: id,
-			email: email
-		},
-		TOKEN_SECRET,
-		{ expiresIn: 600 }
-	);
-}
-
 function parse(template, textMap) {
 	let output = template
 
@@ -165,49 +129,32 @@ function parse(template, textMap) {
 	return output
 }
 
-async function sendEmail(token, email) {
-	const msg = {
-		to: email,
-		from: 'noreply@adelaideb9.com',
-		subject: 'Discord Authentication',
-		text: parse(message.authEmail, { token: token })
-	};
-
-	try {
-		await sgMail.send(msg);
-		return result.EMAIL_SENT;
-
-	} catch (error) {
-		console.error(error);
-		return result.EMAIL_FAILED;
-	}
-}
-
-async function authenticate(id, email) {
-	if (email) {
+async function authenticate(id, jwt) {
+	if (jwt) {
 		try {
-			// Getting email from input with regex
-			let re = new RegExp(emailRegex);
-			email = email.toLowerCase();
-			email = re.exec(email)[0];
+			// need to check if already authenticated
+			// if (members[id]) {
+			// 	return result.ALREADY_AUTHENTICATED;
+			// }
 
-			if (email) {
-				// Already authenticated
-				if (members[id]) {
-					return result.ALREADY_AUTHENTICATED;
+			response = await axios.post('http://localhost:8008/api/verify_discord_token', {
+					'token': jwt,
+					'discord-id': id,
 				}
+			);
 
-				// Generate token and send email
-				token = Buffer.from(genToken(id, email)).toString('base64');
-				return await sendEmail(token, email);
-			}
+			addRole(id, '517841390114308127');
 
-		} catch (err) {
+			return result.TOKEN_ACCEPTED;
+		}
+
+		catch (err) {
 			console.log(err);
+			return result.INVALID_TOKEN;
 		}
 	}
 
-	return result.INVALID_EMAIL;
+	return result.INVALID_TOKEN;
 }
 
 function addRole(id, roleName) {
@@ -219,49 +166,27 @@ function addRole(id, roleName) {
 			role = guild.roles.cache.find(role => role.name === roleName);
 
 			if (role) {
-				guild.members.cache.find(guildMember => guildMember.user.id == id).roles.add(role);
+				var yeet = guild.members.cache.find(guildMember => guildMember.user.id == id)
+				
+				// guild.members.cache.find(guildMember => guildMember.user.id == id).roles.add(role);
 				failed = false;
+
+				console.log(yeet)
 			}
+
+			console.log(role)
 
 		} catch (err) {
 			failed = true;
+
+			console.log(err)
 		}
 	});
 
+	console.log(guilds);
+
 	if (failed)
 		return result.ROLE_ADD_FAILED;
-}
-
-function receiveToken(id, token) {
-	if (token) {
-		token = Buffer.from(token, 'base64').toString();
-
-		try {
-			// Validating the token and getting the token data
-			valid = jwt.verify(token, TOKEN_SECRET);
-			tokenData = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-
-			// Handling the case the user is already authenticated
-			if (members[id]) {
-				return result.ALREADY_AUTHENTICATED;
-			}
-
-			// Adding the user to the db and adding the correct role
-			if (valid && tokenData.id == id) {
-				if (addRole(id, defaultRole) == result.ROLE_ADD_FAILED)
-					return result.ROLE_ADD_FAILED;
-
-				members[id] = tokenData.email;
-				fs.writeFileSync("./bot/members.json", JSON.stringify(members));
-
-				return result.TOKEN_ACCEPTED;
-			}
-		} catch (err) {
-			console.log(err)
-		}
-	}
-
-	return result.INVALID_TOKEN;
 }
 
 async function sendWelcome(member) {
