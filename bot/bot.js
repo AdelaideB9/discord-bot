@@ -137,9 +137,7 @@ client.on('message', async (msg) => {
 });
 
 client.on('guildMemberAdd', member => {
-	if (!member.roles.cache.some(role => role.name == "member")) {
-		sendWelcome(member);
-	}
+    sendWelcome(member);
 });
 
 client.login(process.env.TOKEN)

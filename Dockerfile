@@ -9,5 +9,4 @@ RUN npm install
 COPY bot/ .
 COPY .env .
 
-EXPOSE 8080
 CMD [ "forever", "start", "bot.js" ]
