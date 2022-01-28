@@ -11,7 +11,7 @@
 	"restartFailed": "Failed to restart!",
 	"restartComplete": "Hi again! I just restarted.",
 	"notAllowed": "You need to be a bot developer for that...",
-	"authHelp": "Authenticate using ${prefix}auth [email]. We ask for authentication so in the case of any legal implications, we have peoples' discord usernames and email. If you have any questions, please email us at hello@adelaideb9.com.",
+	"authHelp": "Authenticate using ${prefix}auth [email]. We ask for authentication to prevent cheating within CTFs and to protect the integrity of the club and Discord server. In the case of any implications, we will be able to contact members using this information. If you have any questions, please email us at hello@adelaideb9.com.",
 	"tokenHelp": "Enter a token using ${prefix}token [token]",
 	"roleAddFailed": "Failed to add role, please contact an admin"
 }
