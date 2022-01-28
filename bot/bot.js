@@ -102,8 +102,9 @@ client.on('message', async (msg) => {
 		} else if (args[0] == `${prefix}token`) {
 
 			if (args.length == 2) {
-				let result = receiveToken(msg.author.id, args[1]);
-				msg.reply(message[result]);
+				receiveToken(msg.author.id, args[1]).then(result => {
+					msg.reply(message[result]);
+				});
 			} else {
 				msg.reply(parse(message.tokenHelp, { prefix: prefix }));
 			}
@@ -208,29 +209,30 @@ async function authenticate(id, email) {
 	return result.INVALID_EMAIL;
 }
 
-function addRole(id, roleName) {
+async function addRole(id, roleName) {
 	failed = true;
-	// Going through each guild in guilds
-	guilds.forEach(guild => {
-		try {
+	try {
+		// Going through each guild in guilds
+		for (guild of guilds) {
 			// Finding the role that matches roleName and adding it to the msg author
 			role = guild.roles.cache.find(role => role.name === roleName);
 
 			if (role) {
-				guild.members.cache.find(guildMember => guildMember.user.id == id).roles.add(role);
+				u = await guild.members.fetch(id);
+				u.roles.add(role);
 				failed = false;
 			}
-
-		} catch (err) {
-			failed = true;
 		}
-	});
+
+	} catch (err) {
+		failed = true;
+	}
 
 	if (failed)
 		return result.ROLE_ADD_FAILED;
 }
 
-function receiveToken(id, token) {
+async function receiveToken(id, token) {
 	if (token) {
 		token = Buffer.from(token, 'base64').toString();
 
@@ -246,7 +248,7 @@ function receiveToken(id, token) {
 
 			// Adding the user to the db and adding the correct role
 			if (valid && tokenData.id == id) {
-				if (addRole(id, defaultRole) == result.ROLE_ADD_FAILED)
+				if (await addRole(id, defaultRole) == result.ROLE_ADD_FAILED)
 					return result.ROLE_ADD_FAILED;
 
 				members[id] = tokenData.email;
