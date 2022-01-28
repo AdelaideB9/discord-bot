@@ -1,7 +1,8 @@
 require('dotenv').config();
 
 const Discord = require('discord.js');
-const client = new Discord.Client();
+const { Intents } = require('discord.js');
+const client = new Discord.Client({ intents: [Intents.FLAGS.GUILD_PRESENCES, Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS] });
 const fs = require('fs');
 const shell = require('shelljs'); // interact with the OS's shell
 const jwt = require('jsonwebtoken');
@@ -138,7 +139,7 @@ client.on('message', async (msg) => {
 });
 
 client.on('guildMemberAdd', member => {
-    sendWelcome(member);
+	sendWelcome(member);
 });
 
 client.login(process.env.TOKEN)
