@@ -10,7 +10,7 @@
 	"restarting": "Restarting and checking for updates...",
 	"restartFailed": "Failed to restart!",
 	"restartComplete": "Hi again! I just restarted.",
-	"notAllowed": "You need to be a bot developer for that...",
+	"notAllowed": "you do not have permission to do that...",
 	"authHelp": "Authenticate using ${prefix}auth [email]. We ask for authentication to prevent cheating within CTFs and to protect the integrity of the club and Discord server. In the case of any implications, we will be able to contact members using this information. If you have any questions, please email us at hello@adelaideb9.com.",
 	"tokenHelp": "Enter a token using ${prefix}token [token]",
 	"roleAddFailed": "Failed to add role, please contact an admin"
