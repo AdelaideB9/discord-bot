@@ -37,7 +37,7 @@ const result = {
 const TOKEN_SECRET = crypto.randomBytes(20).toString('hex');
 console.log("TOKEN_SECRET: " + TOKEN_SECRET);
 
-const { prefix, adminRole, botManagerRole, emailRegex, defaultRole } = require('./config.json');
+const { prefix, botManagerRole, emailRegex, defaultRole } = require('./config.json');
 
 client.on('ready', () => {
 	console.log(`Logged in as ${client.user.tag}!`);
@@ -121,7 +121,7 @@ client.on('message', async (msg) => {
 
 		} else if (msg.content == `${prefix}update` || msg.content == `${prefix}restart`) {
 
-			if (msg.member.roles.cache.find(r => r.name == adminRole || r.name == botManagerRole)) {
+			if (msg.member.hasPermission("ADMINISTRATOR") || msg.member.roles.cache.find(r => r.name == botManagerRole)) {
 				msg.channel.send(message.restarting);
 				data.restartChannel = msg.channel.id;
 				saveData();
