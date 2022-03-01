@@ -54,12 +54,11 @@ client.on('ready', () => {
 	});
 
 
-	fs.readFile('./content/welcome.md', 'utf8', async (err, message) => {
+	fs.readFile('./content/welcome.md', 'utf8', (err, message) => {
 		if (err) { console.log("Failed to read welcome.md"); }
 		else {
 			welcomeChannel = client.channels.cache.get(data.welcomeChannel)
-			messages = await welcomeChannel.history(limit=10).flatten()
-			if (messages.length == 0) {
+			if (welcomeChannel.messages.cache.size < 1) {
 				welcomeChannel.send(message, { split: true });
 			} else {
 				console.log("Message channel already has posts")
