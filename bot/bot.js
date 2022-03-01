@@ -54,16 +54,16 @@ client.on('ready', () => {
 	});
 
 
-	fs.readFile('./content/welcome.md', 'utf8', (err, message) => {
+	fs.readFile('./content/welcome.md', 'utf8', async (err, message) => {
 		if (err) { console.log("Failed to read welcome.md"); }
 		else {
-			client.channels.cache.get(data.welcomeChannel).messages.fetch("830702450339479602")
-			.then(msg => {
-				msg.edit(message)
-					.then(msg => console.log("Welcome message updated!"))
-					.catch(console.error);
-			})
-			.catch(console.error);
+			welcomeChannel = client.channels.cache.get(data.welcomeChannel)
+			messages = await welcomeChannel.history(limit=10).flatten()
+			if (messages.length == 0) {
+				welcomeChannel.send(message, { split: true });
+			} else {
+				console.log("Message channel already has posts")
+			}
 		}
 	});
 	fs.readFile('./content/resources.md', 'utf8', (err, message) => {
