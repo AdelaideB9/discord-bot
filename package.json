@@ -1,11 +1,10 @@
 {
   "dependencies": {
-    "@sendgrid/mail": "^7.4.2",
+    "axios": "^0.26.0",
     "discord": "^0.8.2",
     "discord.js": "^12.5.3",
     "dotenv": "^8.2.0",
     "forever": "^3.0.4",
-    "jsonwebtoken": "^8.5.1",
     "shelljs": "^0.8.4"
   },
   "name": "discord-bot",

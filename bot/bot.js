@@ -5,121 +5,82 @@ const { Intents } = require('discord.js');
 const client = new Discord.Client({ intents: [Intents.FLAGS.GUILD_PRESENCES, Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS] });
 const fs = require('fs');
 const shell = require('shelljs'); // interact with the OS's shell
-const jwt = require('jsonwebtoken');
-const sgMail = require('@sendgrid/mail');
-const crypto = require('crypto')
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const axios = require('axios');
 
 // Loading data
 let data = JSON.parse(fs.readFileSync('./bot/data.json'));
-let members;
-
-try {
-	members = JSON.parse(fs.readFileSync('./bot/members.json'));
-} catch(err) {
-	members = {}
-}
-
 let message = JSON.parse(fs.readFileSync('./bot/messages.json'));
-let guilds = [];
+let guild;
 
 const result = {
 	TOKEN_ACCEPTED: "tokenAccepted",
 	INVALID_TOKEN: "invalidToken",
 	ALREADY_AUTHENTICATED: "alreadyAuthenticated",
-	EMAIL_SENT: "emailSent",
-	INVALID_EMAIL: "invalidEmail",
-	EMAIL_FAILED: "emailFailed",
-	ROLE_ADD_FAILED: "roleAddFailed"
+	ROLE_ADD_FAILED: "roleAddFailed",
+	SERVER_ERROR: "serverError",
 }
 
-const TOKEN_SECRET = crypto.randomBytes(20).toString('hex');
-console.log("TOKEN_SECRET: " + TOKEN_SECRET);
-
-const { prefix, botManagerRole, emailRegex, defaultRole } = require('./config.json');
+const { prefix, botManagerRole, defaultRole } = require('./config.json');
 
 client.on('ready', () => {
 	console.log(`Logged in as ${client.user.tag}!`);
 
-	client.user.setPresence({ activity: { name: "I don't work pls help meowwwww", type: "COMPETING" } })
+	client.user.setPresence({ activity: { name: "a super secret CTF", type: "COMPETING" } })
 		.then(console.log)
 		.catch(console.error);
 
 	client.channels.cache.get(data.restartChannel).send(message.restartComplete);
 
-	// Adding guilds to guilds array
-	client.guilds.cache.forEach(guild => {
-		guilds.push(guild)
-	});
+	guild = client.guilds.cache.get(data.guildID)
 
-
-	fs.readFile('./content/welcome.md', 'utf8', (err, message) => {
+	fs.readFile('./content/welcome.md', 'utf8', async (err, message) => {
 		if (err) { console.log("Failed to read welcome.md"); }
 		else {
-			welcomeChannel = client.channels.cache.get(data.welcomeChannel)
-			if (welcomeChannel.messages.cache.size < 1) {
+			let welcomeChannel = client.channels.cache.get(data.welcomeChannel)
+			let messages = await welcomeChannel.messages.fetch();
+			if (messages.size < 1) {
 				welcomeChannel.send(message, { split: true });
+				console.log("Welcome message updated!");
 			} else {
-				console.log("Message channel already has posts")
+				console.log("Welcome channel already has messages")
 			}
 		}
 	});
-	fs.readFile('./content/resources.md', 'utf8', (err, message) => {
-		if (err) { console.log("Failed to read resources.md"); }
+
+	fs.readFile('./content/resources.md', 'utf8', async (err, message) => {
+		if (err) { console.log("Failed to read welcome.md"); }
 		else {
-			client.channels.cache.get(data.resourcesChannel).messages.fetch("830708576284049409")
-			.then(msg => {
-				msg.edit(message)
-					.then(msg => console.log("Resources message updated!"))
-					.catch(console.error);
-			})
-			.catch(console.error);
+			let resourcesChannel = client.channels.cache.get(data.resourcesChannel)
+			let messages = await resourcesChannel.messages.fetch();
+			if (messages.size < 1) {
+				resourcesChannel.send(message, { split: true });
+				console.log("Resources message updated!");
+			} else {
+				console.log("Resources channel already has messages")
+			}
 		}
 	});
-});
-
-// Adding guild to guilds whenever one joins
-client.on('guildCreate', guild => {
-	guilds.push(guild);
 });
 
 client.on('message', async (msg) => {
 	if (msg.channel.type == 'dm') {
-
 		// Messages within DMs
 		let args = msg.content.split(' ');
 
 		if (args[0] == `${prefix}auth`) {
-
 			if (args.length == 2) {
 				let result = await authenticate(msg.author.id, args[1]);
-				msg.reply(parse(message[result], { email: args[1], prefix: prefix }));
-			} else {
-				msg.reply(parse(message.authHelp, { prefix: prefix }));
+				msg.reply(parse(message[result], { prefix: prefix }));
 			}
-
-		} else if (args[0] == `${prefix}token`) {
-
-			if (args.length == 2) {
-				receiveToken(msg.author.id, args[1]).then(result => {
-					msg.reply(message[result]);
-				});
-			} else {
-				msg.reply(parse(message.tokenHelp, { prefix: prefix }));
-			}
-
 		}
 
 	} else {
-
 		// Messages within the server
 		if (msg.content == 'ping') {
-
-			msg.reply('pong');
-
+			if (msg.member.hasPermission("ADMINISTRATOR") || msg.member.roles.cache.find(r => r.name == botManagerRole)) {
+				msg.reply('pong');
+			}
 		} else if (msg.content == `${prefix}update` || msg.content == `${prefix}restart`) {
-
 			if (msg.member.hasPermission("ADMINISTRATOR") || msg.member.roles.cache.find(r => r.name == botManagerRole)) {
 				msg.channel.send(message.restarting);
 				data.restartChannel = msg.channel.id;
@@ -129,11 +90,9 @@ client.on('message', async (msg) => {
 					msg.channel.send(message.restartFailed);
 				}, 1000);
 			} else {
-				msg.reply(message.notAllowed)
+				msg.reply(message.notAllowed);
 			}
-
 		}
-
 	}
 });
 
@@ -141,18 +100,43 @@ client.on('guildMemberAdd', member => {
 	sendWelcome(member);
 });
 
-client.login(process.env.TOKEN)
+client.setInterval(async () => {
+	if (guild == undefined) {
+		return
+	}
+	try {
+		let res = await axios.get(`${process.env.API_URL}/api/discord/members`);
+		role = guild.roles.cache.find(role => role.name === defaultRole);
 
-function genToken(id, email) {
-	return jwt.sign(
-		{
-			id: id,
-			email: email
-		},
-		TOKEN_SECRET,
-		{ expiresIn: 600 }
-	);
-}
+		if (role) {
+			// removing members
+			for (const [id, user] of role.members) {
+				if (!res.data.includes(id)) {
+					// remove member role
+					await user.roles.remove(role);
+					console.log(`${defaultRole} role removed from '${user.user.tag}'`)
+				}
+
+				res.data = res.data.filter(v => v != id)
+			}
+
+			// adding new members
+			for (const id of res.data) {
+				try {
+					user = await guild.members.fetch(id);
+					await user.roles.add(role);
+					console.log(`${defaultRole} role added to '${user.user.tag}'`)
+				} catch (err) {
+					// user doesn't exist in this guild
+				}
+			}
+		}
+	} catch (err) {
+		console.log(err)
+	}
+}, 1000 * 60)
+
+client.login(process.env.TOKEN);
 
 function parse(template, textMap) {
 	let output = template
@@ -164,64 +148,26 @@ function parse(template, textMap) {
 	return output
 }
 
-async function sendEmail(token, email) {
-	const msg = {
-		to: email,
-		from: 'noreply@adelaideb9.com',
-		subject: 'Discord Authentication',
-		text: parse(message.authEmail, { token: token })
-	};
-
-	try {
-		await sgMail.send(msg);
-		return result.EMAIL_SENT;
-
-	} catch (error) {
-		console.error(error);
-		return result.EMAIL_FAILED;
+async function sendWelcome(member) {
+	// Ensuring they aren't already a member
+	if (!member.roles.cache.some(role => role.name == defaultRole)) {
+		// Creating DMChannel and sending welcome msg
+		dm = await member.createDM();
+		dm.send(parse(message.welcome, { prefix: prefix }));
 	}
-}
-
-async function authenticate(id, email) {
-	if (email) {
-		try {
-			// Getting email from input with regex
-			let re = new RegExp(emailRegex);
-			email = email.toLowerCase();
-			email = re.exec(email)[0];
-
-			if (email) {
-				// Already authenticated
-				if (members[id]) {
-					return result.ALREADY_AUTHENTICATED;
-				}
-
-				// Generate token and send email
-				token = Buffer.from(genToken(id, email)).toString('base64');
-				return await sendEmail(token, email);
-			}
-
-		} catch (err) {
-			console.log(err);
-		}
-	}
-
-	return result.INVALID_EMAIL;
 }
 
 async function addRole(id, roleName) {
 	failed = true;
 	try {
-		// Going through each guild in guilds
-		for (guild of guilds) {
-			// Finding the role that matches roleName and adding it to the msg author
-			role = guild.roles.cache.find(role => role.name === roleName);
+		// Finding the role that matches roleName and adding it to the msg author
+		role = guild.roles.cache.find(role => role.name === roleName);
 
-			if (role) {
-				u = await guild.members.fetch(id);
-				u.roles.add(role);
-				failed = false;
-			}
+		if (role) {
+			u = await guild.members.fetch(id);
+			u.roles.add(role);
+			console.log(`${roleName} role added to '${u.user.tag}'`)
+			failed = false;
 		}
 
 	} catch (err) {
@@ -232,48 +178,26 @@ async function addRole(id, roleName) {
 		return result.ROLE_ADD_FAILED;
 }
 
-async function receiveToken(id, token) {
-	if (token) {
-		token = Buffer.from(token, 'base64').toString();
+async function authenticate(id, token) {
+	try {
+		await axios.post(`${process.env.API_URL}/api/discord/members/${id}`, { 'token': token });
 
-		try {
-			// Validating the token and getting the token data
-			valid = jwt.verify(token, TOKEN_SECRET);
-			tokenData = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+		if (await addRole(id, defaultRole) == result.ROLE_ADD_FAILED)
+			return result.ROLE_ADD_FAILED;
 
-			// Handling the case the user is already authenticated
-			if (members[id]) {
-				return result.ALREADY_AUTHENTICATED;
-			}
+		return result.TOKEN_ACCEPTED;
 
-			// Adding the user to the db and adding the correct role
-			if (valid && tokenData.id == id) {
-				if (await addRole(id, defaultRole) == result.ROLE_ADD_FAILED)
-					return result.ROLE_ADD_FAILED;
-
-				members[id] = tokenData.email;
-				fs.writeFileSync("./bot/members.json", JSON.stringify(members));
-
-				return result.TOKEN_ACCEPTED;
-			}
-		} catch (err) {
-			console.log(err)
+	} catch (err) {
+		if (err.response.status == 422) {
+			return result.INVALID_TOKEN;
+		} else if (err.response.status >= 500) {
+			return result.SERVER_ERROR;
 		}
-	}
 
-	return result.INVALID_TOKEN;
-}
-
-async function sendWelcome(member) {
-	// Ensuring they aren't already a member
-	if (!member.roles.cache.some(role => role.name == defaultRole)) {
-		// Creating DMChannel and sending welcome msg
-		dm = await member.createDM();
-		dm.send(parse(message.authRequest, { prefix: prefix }));
+		return result.ALREADY_AUTHENTICATED;
 	}
 }
 
 function saveData() {
 	fs.writeFileSync('./bot/data.json', JSON.stringify(data, null, 4));
 }
-

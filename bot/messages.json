@@ -1,17 +1,12 @@
 {
 	"tokenAccepted": "Thank you for authenticating",
+	"serverError": "There was an error on our side. Please contact an admin",
 	"invalidToken": "Incorrect token. Please try again or request another one",
 	"alreadyAuthenticated": "You're already authenticated",
-	"authEmail": "Thank you for authenticating yourself. \nHere is your token: \n${token} \nIf you feel that this is in error, please contact us at hello@adelaideb9.com.",
-	"emailSent": "Your authentication token has been sent to ${email}. \nPlease enter this using ${prefix}token [token]",
-	"emailFailed": "Email failed to send, if this happens more than once please contact an admin",
-	"invalidEmail": "Please use a valid email - this must be your UofA email of the form 'a1234567@student.adelaide.edu.au'",
-	"authRequest": "Please authenticate yourself with ${prefix}auth [email]",
+	"welcome": "Welcome new member! To gain full access to our server, please make a club account at https://adelaideb9.com/register. Then log in, generate your Discord verification token at https://adelaideb9.com/settings, and send it to me! It should look something like '${prefix}auth [long text here]'.",
 	"restarting": "Restarting and checking for updates...",
 	"restartFailed": "Failed to restart!",
 	"restartComplete": "Hi again! I just restarted.",
 	"notAllowed": "you do not have permission to do that...",
-	"authHelp": "Authenticate using ${prefix}auth [email]. We ask for authentication to prevent cheating within CTFs and to protect the integrity of the club and Discord server. In the case of any implications, we will be able to contact members using this information. If you have any questions, please email us at hello@adelaideb9.com.",
-	"tokenHelp": "Enter a token using ${prefix}token [token]",
 	"roleAddFailed": "Failed to add role, please contact an admin"
 }
