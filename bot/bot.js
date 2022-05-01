@@ -97,7 +97,9 @@ client.on('message', async (msg) => {
 });
 
 client.on('guildMemberAdd', member => {
-	sendWelcome(member);
+	try {
+		sendWelcome(member);
+	} catch (ignore) {}
 });
 
 client.setInterval(async () => {
