@@ -1,8 +1,8 @@
 require('dotenv').config();
 
 const Discord = require('discord.js');
-const { Intents } = require('discord.js');
-const client = new Discord.Client({ intents: [Intents.FLAGS.GUILD_PRESENCES, Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS] });
+const { Intents, DMChannel } = require('discord.js');
+const client = new Discord.Client({ partials: ['MESSAGE', 'CHANNEL', 'REACTION'], intents: [Intents.FLAGS.GUILD_PRESENCES, Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES] });
 const fs = require('fs');
 const shell = require('shelljs'); // interact with the OS's shell
 const axios = require('axios');
@@ -25,9 +25,7 @@ const { prefix, botManagerRole, defaultRole } = require('./config.json');
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
 
-    client.user.setPresence({ activity: { name: "a super secret CTF", type: "COMPETING" } })
-        .then(console.log)
-        .catch(console.error);
+    console.log(client.user.setPresence({ activities: [{ name: "a super secret CTF", type: "COMPETING" }] }));
 
     client.channels.cache.get(data.restartChannel).send(message.restartComplete);
 
@@ -62,8 +60,8 @@ client.on('ready', () => {
     });
 });
 
-client.on('message', async (msg) => {
-    if (msg.channel.type == 'dm') {
+client.on('messageCreate', async (msg) => {
+    if (msg.channel instanceof DMChannel) {
         // Messages within DMs
         let args = msg.content.split(' ');
 
@@ -77,11 +75,11 @@ client.on('message', async (msg) => {
     } else {
         // Messages within the server
         if (msg.content == 'ping') {
-            if (msg.member.hasPermission("ADMINISTRATOR") || msg.member.roles.cache.find(r => r.name == botManagerRole)) {
+            if (msg.member.permissions.has("ADMINISTRATOR") || msg.member.roles.cache.find(r => r.name == botManagerRole)) {
                 msg.reply('pong');
             }
         } else if (msg.content == `${prefix}update` || msg.content == `${prefix}restart`) {
-            if (msg.member.hasPermission("ADMINISTRATOR") || msg.member.roles.cache.find(r => r.name == botManagerRole)) {
+            if (msg.member.permissions.has("ADMINISTRATOR") || msg.member.roles.cache.find(r => r.name == botManagerRole)) {
                 msg.channel.send(message.restarting);
                 data.restartChannel = msg.channel.id;
                 saveData();
@@ -100,7 +98,7 @@ client.on('guildMemberAdd', member => {
     sendWelcome(member);
 });
 
-client.setInterval(async () => {
+setInterval(async () => {
     if (guild == undefined) {
         return
     }
@@ -154,7 +152,7 @@ async function sendWelcome(member) {
         // Creating DMChannel and sending welcome msg
         try {
             dm = await member.createDM();
-            dm.send(parse(message.welcome, { prefix: prefix }));
+            await dm.send(parse(message.welcome, { prefix: prefix }));
         } catch (ignore) { }
     }
 }

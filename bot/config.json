@@ -1,5 +1,5 @@
 {
     "prefix": "./",
     "botManagerRole": "Moderator",
-	"defaultRole": "Member"
+    "defaultRole": "Member"
 }
